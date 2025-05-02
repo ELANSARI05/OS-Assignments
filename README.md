@@ -1,11 +1,21 @@
-# OS-Assignments
+# CPU Scheduler Simulator
 
-This project is a **CPU Scheduler Simulator** built with [Dash](https://dash.plotly.com/) and [Dash Bootstrap Components](https://dash-bootstrap-components.opensource.faculty.ai/), created for an Operating Systems assignment.
+This is a CPU scheduling simulator with a web-based interactive dashboard.
 
-It visually simulates and compares various CPU scheduling algorithms like FCFS, SJF, Priority, Round Robin, and Priority + Round Robin. Users can provide process inputs manually, via file upload, or generate them randomly — with detailed metric output and a dynamic Gantt chart.
+## 🛠 Requirements
 
----
+- Python 3.x
+- Install dependencies with:
 
-## 🚀 How to Run the Project
+```bash
+pip install dash
+```
 
-> 📓 The main app is run from a Jupyter Notebook: `app.ipynb`
+## 🚀 Running the Simulator
+
+Simply open and run `app.ipynb` in Jupyter Notebook. It will launch a Dash web application on the last jupyter cell where you can:
+
+- Select a scheduling algorithm
+- Input process parameters or generate random ones
+- Visualize the Gantt chart and performance metrics
+- (Lookup report.pdf for all details and features)
