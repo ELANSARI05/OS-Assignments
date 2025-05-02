@@ -1,3 +1,5 @@
+import random
+
 class Process:
     def __init__(self, pid, arrival_time, burst_time, priority=0):
         self.pid = pid
@@ -14,36 +16,28 @@ def fcfs(processes):
     processes.sort(key=lambda p: p.arrival_time)
     # the sorting is only done to jump to next process quickly
     current_time = 0
-    schedule = []
+    schedule = [] # the order in which the processes finished execution
     total_burst_time = 0
     avg_turnaround_time,avg_waiting_time,cpu_utilisation = 0,0,0
     for process in processes:
-        process.start_time = max(current_time, process.arrival_time)
+        process.start_time = max(current_time, process.arrival_time) # if the process is not yet arrived , we wait for it
         # if a process came before the other ends , he waits , else he directly starts running
         current_time = process.start_time + process.burst_time
         process.completion_time = current_time
         process.turnaround_time = process.completion_time - process.arrival_time
         process.waiting_time = process.turnaround_time - process.burst_time
-        total_burst_time += process.burst_time
-        avg_turnaround_time += process.turnaround_time
-        avg_waiting_time += process.waiting_time
-        cpu_utilisation += process.burst_time
-        
+       
+        total_burst_time += process.burst_time # the total time taken by all processes
+        avg_turnaround_time += process.turnaround_time # the average time between arrival and completion among all processes
+        avg_waiting_time += process.waiting_time       # the average waiting time among all processes(a process is waiting if it is in the system but not running)  
         schedule.append(process.pid)
 
-    makespan = processes[-1].completion_time 
-    cpu_utilisation = ( total_burst_time/ makespan) * 100  # in percentage
-    avg_turnaround_time /= len(processes)
-    avg_waiting_time /= len(processes)
+    makespan = processes[-1].completion_time   # the total time taken by all processes
+    # we assume that the cpu utilization starts counting since time 0(for all algorithms)
+    cpu_utilisation = ( total_burst_time/ makespan) * 100  # the sum of running time divided by the makespan (in percentage)
+    avg_turnaround_time /= len(processes) # take the average of the turnaround time
+    avg_waiting_time /= len(processes) # take the average of the waiting time
     return schedule, avg_turnaround_time,   avg_waiting_time, cpu_utilisation
-
-processes = [
-    Process(1, 1, 5),
-    Process(2, 6, 3),
-    Process(3, 2, 8),
-    Process(4, 3, 6)
-]
-fcfs(processes)
 
 
 def sjf(processes): 
@@ -55,17 +49,19 @@ def sjf(processes):
         available = [p for p in processes if p.arrival_time <= current_time]
         # all processes that can be runned now
         # if no process is available , we go to the time of the start of next process 
-        if not available:
+        if not available: 
             current_time = processes[0].arrival_time
             continue
         process = min(available, key=lambda p: p.burst_time)
         #the process with the shortest burst time is selected
         processes.remove(process)
         process.start_time = current_time
+
         current_time += process.burst_time
         process.completion_time = current_time
         process.turnaround_time = process.completion_time - process.arrival_time
         process.waiting_time = process.turnaround_time - process.burst_time
+
         avg_waiting_time += process.waiting_time
         avg_turnaround_time += process.turnaround_time
         total_burst_time += process.burst_time
@@ -76,37 +72,35 @@ def sjf(processes):
     makespan = current_time 
     cpu_utilization = (total_burst_time/makespan) *100
     return schedule, avg_turnaround_time, avg_waiting_time,cpu_utilization
-processes = [
-    Process(1, 0, 5),
-    Process(2, 0, 3),
-    Process(3, 9, 8),
-    Process(4, 10, 6)
-]
-sjf(processes)
+
+
+
 
 def priority_scheduling(processes): # Priority Scheduling (Non-Preemptive)
     # HIGH PRIORITY MEANS LOW NUMBER 
     avg_turnaround_time,avg_waiting_time = 0,0
     l = len(processes)
-    processes.sort(key=lambda x: (x.arrival_time, x.priority))
+    processes.sort(key=lambda x: (x.arrival_time, x.priority)) # sort by arrival time and then by priority
     current_time, schedule = 0, []
     total_burst_time = 0
     while processes:
-        available = [p for p in processes if p.arrival_time <= current_time]
+        available = [p for p in processes if p.arrival_time <= current_time] # all processes that can be runned now
         if not available:
             current_time = processes[0].arrival_time
             continue
-        process = min(available, key=lambda p: p.priority)
+        process = min(available, key=lambda p: p.priority) # the process with the highest priority
         processes.remove(process)
         process.start_time = current_time
         current_time += process.burst_time
         process.completion_time = current_time
         process.turnaround_time = process.completion_time - process.arrival_time
         process.waiting_time = process.turnaround_time - process.burst_time
+
         avg_waiting_time += process.waiting_time
         avg_turnaround_time += process.turnaround_time
         total_burst_time += process.burst_time
-        schedule.append(process.pid)
+
+        schedule.append(process.pid) # Non preemptive so it will run to completion
     avg_turnaround_time /= l
     avg_waiting_time /= l
     makespan = (current_time)
@@ -114,39 +108,32 @@ def priority_scheduling(processes): # Priority Scheduling (Non-Preemptive)
     return schedule, avg_turnaround_time, avg_waiting_time,cpu_utilization
 
 
-processes = [
-    Process(1, 9, 10,3),
-    Process(2, 0, 6,1),
-    Process(3, 0, 2,4),
-    Process(4, 9, 4,5),
-    Process(5, 9, 8,1)
-]    
+  
 
-print(priority_scheduling(processes.copy()))
 def round_robin(processes, quantum=1):
     for p in processes:
         p.remaining_time = p.burst_time
-    processes.sort(key=lambda p: p.arrival_time)
+    processes.sort(key=lambda p: p.arrival_time) # sort by arrival time
     queue = []
     current_time = 0
     schedule = []
     remaining = processes[:]
     avg_turnaround_time, avg_waiting_time, total_burst_time = 0, 0, 0
-    timeline = []
+    timeline = [] # to keep track of the execution timeline, we will use it to show the order of execution in the Gantt chart
 
     while queue or remaining:
         if queue:
             p = queue.pop(0)
-            exec_time = min(p.remaining_time, quantum)
+            exec_time = min(p.remaining_time, quantum) # each process will run for a quantum time or the remaining time(whichever is smaller)
             start_exec = current_time
             current_time += exec_time
             p.remaining_time -= exec_time
             timeline.append((p.pid, start_exec, current_time))
 
-            while remaining and remaining[0].arrival_time <= current_time:
+            while remaining and remaining[0].arrival_time <= current_time: # add all processes that have arrived when we were executing
                 queue.append(remaining.pop(0))
 
-            if p.remaining_time == 0:
+            if p.remaining_time == 0: # the process has finished executing, save its informations
                 p.completion_time = current_time
                 p.turnaround_time = p.completion_time - p.arrival_time
                 p.waiting_time = p.turnaround_time - p.burst_time
@@ -168,29 +155,20 @@ def round_robin(processes, quantum=1):
     return schedule, avg_turnaround_time, avg_waiting_time, cpu_util, timeline
 
 
-processes = [
-    Process(1, 0, 10,3),
-    Process(2, 0, 6,1),
-    Process(3, 0, 2,4),
-    Process(4, 3, 4,5),
-    Process(5, 3, 2,1)
-]    
-
-print(round_robin(processes.copy(),1))
 
 def priority_rr(processes, quantum=1):
     for p in processes:
         p.remaining_time = p.burst_time
-    processes.sort(key=lambda p: p.arrival_time)
+    processes.sort(key=lambda p: p.arrival_time) # sort by arrival time
     current_time = processes[0].arrival_time
     timeline = []
     avg_turnaround_time, avg_waiting_time, total_burst_time = 0, 0, 0
     schedule = []
-    queue = [p for p in processes if p.arrival_time <= current_time]
-    queue = sorted(queue, key=lambda p: p.priority)
+    queue = [p for p in processes if p.arrival_time <= current_time] # select the processes that have arrived
+    queue = sorted(queue, key=lambda p: p.priority) # sort by priority
     
     while queue:
-        p = queue.pop(0)
+        p = queue.pop(0) # take the process with the highest priority among the available processes
         if p.arrival_time > current_time:
             current_time = p.arrival_time
         start_exec = current_time
@@ -210,14 +188,14 @@ def priority_rr(processes, quantum=1):
         else:
             queue.append(p)
 
-        incoming = [x for x in processes if x.remaining_time > 0 and x.arrival_time <= current_time and x not in queue]
+        incoming = [x for x in processes if x.remaining_time > 0 and x.arrival_time <= current_time and x not in queue] # add new processes that have arrived and were not in the queue
         queue.extend(incoming)
-        if not queue:
+        if not queue: # if no process is left in the queue, we need to wait for the next process to arrive(shift the current time)
             future = [x for x in processes if x.remaining_time > 0 and x.arrival_time > current_time]
             if future:
                 current_time = min(f.arrival_time for f in future)
                 queue.extend([x for x in future if x.arrival_time <= current_time])
-        queue = sorted(queue, key=lambda p: p.priority)
+        queue = sorted(queue, key=lambda p: p.priority) # we sort the available processes by priority to take the one with the highest priority in the next iteration
 
     avg_turnaround_time /= len(processes)
     avg_waiting_time /= len(processes)
@@ -225,16 +203,9 @@ def priority_rr(processes, quantum=1):
     cpu_util = (total_burst_time / makespan) * 100
     return schedule, avg_turnaround_time, avg_waiting_time, cpu_util, timeline
 
-processes1 = [
-    Process(1, 8, 10,3),
-    Process(2, 0, 6,1),
-    Process(3, 0, 2,4),
-    Process(4, 9, 4,5),
-    Process(5, 9, 8,1)
-]    
 
-print(priority_rr(processes1,1))
 file = "processes.txt"
+# Reading processes from a file(.txt .csv)
 def read_processes_from_file(filepath):
     processes = []
     with open(filepath, 'r') as file:
@@ -261,8 +232,8 @@ def read_processes_from_file(filepath):
 
             processes.append(Process(pid, arrival, burst, priority))
     return processes
-import random
 
+# Generating random processes(random arrival and burst times)
 def generate_random_processes(n, arrival_range=(0, 10), burst_range=(1, 10), priority_range=(0, 5)):
     processes = []
     for i in range(1, n + 1):
@@ -271,6 +242,9 @@ def generate_random_processes(n, arrival_range=(0, 10), burst_range=(1, 10), pri
         priority = random.randint(*priority_range)
         processes.append(Process(pid=i, arrival_time=arrival_time, burst_time=burst_time, priority=priority))
     return processes
+
+
+# function to print the processes in a formatted table
 def print_processes(processes):
     print(f"{'PID':<5}{'Arrival':<10}{'Burst':<8}{'Priority':<10}{'Remaining':<10}{'Completion':<12}")
     print("-" * 55)
